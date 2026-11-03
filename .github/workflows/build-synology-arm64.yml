@@ -12,43 +12,52 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
+            linux-libc-dev \
             autoconf \
             automake \
             autopoint \
             gettext \
             pkg-config \
             libbsd-dev \
-            libssl-dev \
-            libbsd0 \
             libmd-dev \
+            libssl-dev \
             musl-tools
 
       - name: Configure and build
         run: |
           ./autogen.sh
-          CC=musl-gcc ./configure \
+
+          CC=musl-gcc \
+          CPPFLAGS="-I/usr/include" \
+          ./configure \
             --without-mactelnetd \
             LDFLAGS="-static"
+
           make -j2
 
       - name: Verify binary
         run: |
           file src/mactelnet
+          readelf -h src/mactelnet
+
           if readelf -l src/mactelnet | grep -q INTERP; then
             echo "ERROR: Binary is dynamically linked"
             exit 1
           fi
 
+          echo "Static binary verification passed"
+
       - name: Package binary
         run: |
           mkdir -p output
           cp src/mactelnet output/
-          tar -czf mactelnet-arm64-static.tar.gz -C output mactelnet
+          tar -czf mactelnet-arm64-static.tar.gz \
+            -C output mactelnet
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
