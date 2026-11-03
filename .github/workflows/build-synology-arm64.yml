@@ -26,7 +26,6 @@ jobs:
             openssl-dev \
             openssl-libs-static \
             libbsd-dev \
-            libbsd-static \
             libmd-dev \
             libmd-static \
             pkgconf \
@@ -36,6 +35,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Check static libraries
+        run: |
+          echo "Checking ARM64 static libraries"
+          find /usr/lib -name 'libbsd.a' -o -name 'libmd.a' -o -name 'libcrypto.a'
+    
       - name: Configure and build
         run: |
           ./autogen.sh
