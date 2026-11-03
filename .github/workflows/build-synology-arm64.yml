@@ -1,0 +1,45 @@
+
+name: Build MAC-Telnet ARM64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            autoconf \
+            automake \
+            autopoint \
+            gettext \
+            libbsd-dev \
+            libssl-dev \
+            pkg-config
+
+      - name: Build MAC-Telnet
+        run: |
+          ./autogen.sh
+          ./configure --without-mactelnetd
+          make -j2
+
+      - name: Package binary
+        run: |
+          mkdir -p output
+          cp src/mactelnet output/
+          file output/mactelnet
+          tar -czf mactelnet-arm64.tar.gz -C output mactelnet
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mactelnet-arm64
+          path: mactelnet-arm64.tar.gz
