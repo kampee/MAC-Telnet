@@ -8,39 +8,45 @@ jobs:
   build:
     runs-on: ubuntu-24.04-arm
 
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+    container:
+      image: alpine:3.21
 
+    steps:
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            linux-libc-dev \
+          apk add --no-cache \
+            git \
+            build-base \
+            linux-headers \
             autoconf \
             automake \
-            autopoint \
+            libtool \
             gettext \
-            pkg-config \
+            gettext-dev \
+            openssl-dev \
+            openssl-libs-static \
             libbsd-dev \
+            libbsd-static \
             libmd-dev \
-            libssl-dev \
-            musl-tools
+            libmd-static \
+            pkgconf \
+            file \
+            binutils
+
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Configure and build
         run: |
           ./autogen.sh
 
-          CC=musl-gcc \
-          CPPFLAGS="-I/usr/include" \
           ./configure \
             --without-mactelnetd \
             LDFLAGS="-static"
 
           make -j2
 
-      - name: Verify binary
+      - name: Verify static binary
         run: |
           file src/mactelnet
           readelf -h src/mactelnet
@@ -50,7 +56,7 @@ jobs:
             exit 1
           fi
 
-          echo "Static binary verification passed"
+          ./src/mactelnet --help
 
       - name: Package binary
         run: |
