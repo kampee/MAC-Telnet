@@ -1,5 +1,5 @@
 
-name: Build MAC-Telnet ARM64
+name: Build MAC-Telnet ARM64 Static
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -21,25 +21,37 @@ jobs:
             automake \
             autopoint \
             gettext \
+            pkg-config \
             libbsd-dev \
             libssl-dev \
-            pkg-config
+            libbsd0 \
+            libmd-dev \
+            musl-tools
 
-      - name: Build MAC-Telnet
+      - name: Configure and build
         run: |
           ./autogen.sh
-          ./configure --without-mactelnetd
+          CC=musl-gcc ./configure \
+            --without-mactelnetd \
+            LDFLAGS="-static"
           make -j2
+
+      - name: Verify binary
+        run: |
+          file src/mactelnet
+          if readelf -l src/mactelnet | grep -q INTERP; then
+            echo "ERROR: Binary is dynamically linked"
+            exit 1
+          fi
 
       - name: Package binary
         run: |
           mkdir -p output
           cp src/mactelnet output/
-          file output/mactelnet
-          tar -czf mactelnet-arm64.tar.gz -C output mactelnet
+          tar -czf mactelnet-arm64-static.tar.gz -C output mactelnet
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mactelnet-arm64
-          path: mactelnet-arm64.tar.gz
+          name: mactelnet-arm64-static
+          path: mactelnet-arm64-static.tar.gz
